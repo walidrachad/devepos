@@ -1,0 +1,20 @@
+version: '3.0'
+
+services:
+  sga-mssql:
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    environment:
+      - ACCEPT_EULA="Y"
+      - MSSQL_COLLATION=Arabic_CI_AS
+      - MSSQL_PID=Developer
+      - MSSQL_SA_PASSWORD=B1y3#WFg74QS
+      - TZ=Africa/Casablanca
+    ports:
+      - '1433:1433'
+  cloudbeaver:
+    image: dbeaver/cloudbeaver:22.3.5
+    restart: always
+    ports:
+      - 9090:8978
+    volumes:
+      - cloudbeaver:/opt/cloudbeaver/workspace
