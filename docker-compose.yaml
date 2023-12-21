@@ -1,0 +1,42 @@
+services:
+
+  spring-app:
+    image: rachaddev/onhym-back:1
+    container_name: spring-app
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./app.jar:/app/app.jar
+    environment:
+      - DATASOURCE=jdbc:mysql://database:3306/onhym?createDatabaseIfNotExist=true
+      - DB_USER=db_user
+      - DB_USER_PASS=db_user_pass
+      - DDL_AUTO=create
+      - DIRECTORY=/app/
+      - port=8080
+      - ENDPOINT_URL:http://172.17.0.70:8080/onhym/ws
+    command: [ "java", "-jar", "/app/app.jar" ]
+
+  database:
+    image: mysql:5.7
+    container_name: database
+    environment:
+      MYSQL_ROOT_PASSWORD: my_secret_password
+      MYSQL_DATABASE: onhym
+      MYSQL_USER: db_user
+      MYSQL_PASSWORD: db_user_pass
+    # ports:
+    #   - "3306:3306"
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: pma
+    links:
+      - database
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+      PMA_ARBITRARY: 1
+    restart: always
+    ports:
+      - 8180:80

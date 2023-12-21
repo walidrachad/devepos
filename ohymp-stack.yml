@@ -1,0 +1,76 @@
+version: "3.5"
+
+services:
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    environment:
+      - PMA_HOST=onhym-db
+      - PMA_PORT=3306
+      - PMA_ARBITRARY=1
+      - UPLOAD_LIMIT=300M
+    depends_on:
+      - onhym-db
+    deploy:
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.phpmyadmin-e027_https.rule=Host(`tanger.onhym.com`)"
+        - "traefik.http.routers.phpmyadmin-e027_https.entrypoints=websecure"
+        - "traefik.http.routers.phpmyadmin-e027_https.tls.certresolver=letsencryptresolver"
+        - "traefik.http.services.phpmyadmin-e027_https.loadbalancer.server.port=80"
+    networks:
+      - default
+      - proxy
+
+  onhym-db:
+    image: mysql:5.7
+    command: mysqld --sql_mode=""
+    environment:
+      - MYSQL_DATABASE=onhym_db
+      - MYSQL_ROOT_PASSWORD=wn4HrHQ1hEws
+      - MYSQL_USER=onhym_user
+      - MYSQL_PASSWORD=EWiaFqnAG3yd
+    # volumes:
+    #   - /ayouris/admin/nawat/e027/db:/var/lib/mysql
+    #   - /ayouris/admin/nawat/e027/mysql/mysqld.cnf:/etc/mysql/mysql.conf.d/mysqld.cnf:ro
+    networks:
+      - default
+
+  traefik:
+    image: "traefik:v2.2"
+    command:
+      - "--log.level=DEBUG"
+      - "--api.dashboard=true"
+      - "--providers.docker.swarmMode=true"
+      - "--providers.docker.network=proxy"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.letsencryptresolver.acme.httpchallenge=true"
+      - "--certificatesresolvers.letsencryptresolver.acme.httpchallenge.entrypoint=web"
+      - "--certificatesresolvers.letsencryptresolver.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./letsencrypt:/letsencrypt
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    deploy:
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.traefik_https.rule=Host(`proxy.onhym.com`)"
+        - "traefik.http.routers.traefik_https.entrypoints=websecure"
+        - "traefik.http.routers.traefik_https.tls.certresolver=letsencryptresolver"
+        - "traefik.http.routers.traefik_https.service=api@internal"
+        - "traefik.http.services.traefik.loadbalancer.server.port=8080"
+        - "traefik.http.services.traefik.loadbalancer.passhostheader=true"
+      placement:
+        constraints:
+          - node.role == manager
+    networks:
+      - proxy
+
+networks:
+  proxy:
+    external: true
